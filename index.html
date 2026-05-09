@@ -117,6 +117,31 @@
         
         .preset-select { width: auto; max-width: 140px; padding: 4px 8px; font-size: 0.85em; margin-top: 0; background-color: var(--input-bg); border: 1px solid var(--input-border); border-radius: 4px; }
 
+        .fast-mode-wrapper { 
+            display: flex; justify-content: space-between; align-items: center; 
+            color: #a0a4b8; font-weight: bold; font-size: 0.9em; 
+            padding: 0 10px; 
+            height: 43px; 
+            box-sizing: border-box;
+            background: var(--input-bg); 
+            border: 1px solid var(--input-border); border-radius: 6px; margin-top: 15px; 
+        }
+        /* 마진 리셋 추가! 기존 label 여백 덮어쓰기 */
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; margin: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; margin: 0; }
+        .slider { 
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; 
+            background-color: var(--bg); transition: .3s; border-radius: 24px; 
+            border: 1px solid var(--input-border); box-sizing: border-box; 
+        }
+        .slider:before { 
+            position: absolute; content: ""; height: 16px; width: 16px; 
+            left: 3px; top: 50%; transform: translateY(-50%); /* 무조건 정중앙 */
+            background-color: #a0a4b8; transition: .3s; border-radius: 50%; 
+        }
+        input:checked + .slider { background-color: var(--accent); border-color: var(--accent); }
+        input:checked + .slider:before { transform: translate(20px, -50%); background-color: var(--accent-text); }
+
         button.action-btn { width: 100%; padding: 15px; margin: 0; background: var(--accent); color: var(--accent-text); border: none; border-radius: 6px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: 0.2s; }
         button.action-btn:hover { opacity: 0.9; }
         button.action-btn:disabled { background: #555; cursor: not-allowed; }
@@ -236,12 +261,12 @@
         
         <div class="autocomplete-wrapper" id="wrap-prompt">
             <label>Prompt</label>
-            <textarea id="prompt" placeholder="프롬프트를 입력하세요..." oninput="autoResize(this)"></textarea>
+            <textarea id="prompt" placeholder="프롬프트를 입력하세요..." oninput="autoResize(this)">masterpiece, best quality, highres, </textarea>
         </div>
         
         <div class="autocomplete-wrapper" id="wrap-negative">
             <label>Negative prompt</label>
-            <textarea id="negative" placeholder="부정 프롬프트를 입력하세요..." oninput="autoResize(this)"></textarea>
+            <textarea id="negative" placeholder="부정 프롬프트를 입력하세요..." oninput="autoResize(this)">low quality, score_1, score_2, lowres, (bad anatomy:2), (bad hands:2), (bad feet:2), extra digits, fewer digits, extra arms, extra legs, (mutated hands:2), glitch, jpeg artifacts, furry, multiple views, (artist name:2), (artist logo:2), official style, official art, old, </textarea>
         </div>
 
         <ul id="autocomplete-results" class="autocomplete-list"></ul>
@@ -322,7 +347,7 @@
                 <div>
                     <label>CFG Rescale</label>
                     <div class="num-wrapper">
-                        <input type="number" id="rescale" value="0.4" step="0.05">
+                        <input type="number" id="rescale" value="0.2" step="0.05">
                         <div class="num-controls">
                             <button type="button" onclick="stepNum('rescale', 1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"></polyline></svg></button>
                             <button type="button" onclick="stepNum('rescale', -1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
@@ -352,6 +377,14 @@
                             <button type="button" onclick="stepNum('seed', -1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
                         </div>
                     </div>
+                </div>
+                
+                <div class="fast-mode-wrapper" style="grid-column: 1 / -1;">
+                    <span>고속 모드 (최적화)</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="fast-mode-toggle">
+                        <span class="slider"></span>
+                    </label>
                 </div>
             </div>
         </div>
@@ -413,14 +446,26 @@
 <script>
     const paramIds = ['prompt', 'negative', 'width', 'height', 'steps', 'cfg', 'rescale', 'sampler_name', 'scheduler', 'batch_size', 'seed', 'unet_name', 'vae_name', 'clip_name'];
 
-    function saveParams() { paramIds.forEach(id => { const el = document.getElementById(id); if (el) localStorage.setItem('honey_param_' + id, el.value); }); }
+    function saveParams() { 
+        paramIds.forEach(id => { const el = document.getElementById(id); if (el) localStorage.setItem('honey_param_' + id, el.value); }); 
+        const fm = document.getElementById('fast-mode-toggle');
+        if (fm) localStorage.setItem('honey_param_fast_mode', fm.checked);
+    }
+    
     function restoreParams() {
         paramIds.forEach(id => {
             const saved = localStorage.getItem('honey_param_' + id); const el = document.getElementById(id);
             if (saved !== null && el) { el.value = saved; if (id === 'prompt' || id === 'negative') autoResize(el); }
         });
+        const fm = document.getElementById('fast-mode-toggle');
+        const savedFm = localStorage.getItem('honey_param_fast_mode');
+        if (fm && savedFm !== null) fm.checked = (savedFm === 'true');
     }
+    
     paramIds.forEach(id => { const el = document.getElementById(id); if (el) { el.addEventListener('change', saveParams); if (el.tagName === 'TEXTAREA') el.addEventListener('input', saveParams); } });
+    
+    const fmToggle = document.getElementById('fast-mode-toggle');
+    if (fmToggle) fmToggle.addEventListener('change', saveParams);
 
     function stepNum(id, dir) {
         const el = document.getElementById(id);
@@ -570,7 +615,7 @@
     bindAutocomplete('prompt'); 
     bindAutocomplete('negative');
     
-    // 🔥 자동완성 삽입 위치 지능형 분기 로직
+    // 자동완성 삽입 위치 지능형 분기 로직
     window.insertTag = (tagText, start, end) => { 
         if(!activeTextarea) return; 
         const val = activeTextarea.value; 
@@ -725,7 +770,55 @@
         document.getElementById('progress-bar').style.width = '0%'; 
         document.getElementById('status-text').innerText = '서버 대기열 진입 중...';
 
-        const wf = { "8": { "inputs": { "samples": ["19", 0], "vae": ["15", 0] }, "class_type": "VAEDecode" }, "11": { "inputs": { "text": document.getElementById('prompt').value, "clip": ["45", 0] }, "class_type": "CLIPTextEncode" }, "12": { "inputs": { "text": document.getElementById('negative').value, "clip": ["45", 0] }, "class_type": "CLIPTextEncode" }, "15": { "inputs": { "vae_name": document.getElementById('vae_name').value }, "class_type": "VAELoader" }, "19": { "inputs": { "seed": parseInt(document.getElementById('seed').value) === -1 ? Math.floor(Math.random() * 1e15) : parseInt(document.getElementById('seed').value), "steps": parseInt(document.getElementById('steps').value), "cfg": parseFloat(document.getElementById('cfg').value), "sampler_name": document.getElementById('sampler_name').value, "scheduler": document.getElementById('scheduler').value, "denoise": 1, "model": ["73", 0], "positive": ["11", 0], "negative": ["12", 0], "latent_image": ["28", 0] }, "class_type": "KSampler" }, "28": { "inputs": { "width": parseInt(document.getElementById('width').value), "height": parseInt(document.getElementById('height').value), "batch_size": parseInt(document.getElementById('batch_size').value) }, "class_type": "EmptyLatentImage" }, "44": { "inputs": { "unet_name": document.getElementById('unet_name').value, "weight_dtype": "default" }, "class_type": "UNETLoader" }, "45": { "inputs": { "clip_name": document.getElementById('clip_name').value, "type": "stable_diffusion", "device": "default" }, "class_type": "CLIPLoader" }, "50": { "inputs": { "filename_prefix": "Honey", "images": ["8", 0] }, "class_type": "SaveImage" }, "73": { "inputs": { "multiplier": parseFloat(document.getElementById('rescale').value), "model": ["44", 0] }, "class_type": "RescaleCFG" } };
+        const isFastMode = document.getElementById('fast-mode-toggle').checked;
+        const p_prompt = document.getElementById('prompt').value;
+        const p_neg = document.getElementById('negative').value;
+        const p_seed = parseInt(document.getElementById('seed').value) === -1 ? Math.floor(Math.random() * 1e15) : parseInt(document.getElementById('seed').value);
+        const p_steps = parseInt(document.getElementById('steps').value);
+        const p_cfg = parseFloat(document.getElementById('cfg').value);
+        const p_rescale = parseFloat(document.getElementById('rescale').value);
+        const p_sampler = document.getElementById('sampler_name').value;
+        const p_scheduler = document.getElementById('scheduler').value;
+        const p_width = parseInt(document.getElementById('width').value);
+        const p_height = parseInt(document.getElementById('height').value);
+        const p_batch = parseInt(document.getElementById('batch_size').value);
+        const p_unet = document.getElementById('unet_name').value;
+        const p_vae = document.getElementById('vae_name').value;
+        const p_clip = document.getElementById('clip_name').value;
+
+        let wf = {};
+
+        if (isFastMode) {
+            wf = {
+                "10": { "inputs": { "vae_name": p_vae }, "class_type": "VAELoader" },
+                "11": { "inputs": { "clip_name": p_clip, "type": "stable_diffusion", "device": "default" }, "class_type": "CLIPLoader" },
+                "14": { "inputs": { "text": p_neg, "clip": ["11", 0] }, "class_type": "CLIPTextEncode" },
+                "15": { "inputs": { "text": p_prompt, "clip": ["11", 0] }, "class_type": "CLIPTextEncode" },
+                "16": { "inputs": { "width": p_width, "height": p_height, "batch_size": p_batch }, "class_type": "EmptyLatentImage" },
+                "17": { "inputs": { "samples": ["775", 0], "vae": ["10", 0] }, "class_type": "VAEDecode" },
+                "20": { "inputs": { "filename_prefix": "Honey", "images": ["17", 0] }, "class_type": "SaveImage" },
+                "21": { "inputs": { "sage_attention": "auto", "allow_compile": true, "model": ["777", 0] }, "class_type": "PathchSageAttentionKJ" },
+                "756": { "inputs": { "reuse_threshold": 0.2, "start_percent": 0.15, "end_percent": 0.95, "verbose": false, "model": ["760", 0] }, "class_type": "EasyCache" },
+                "760": { "inputs": { "backend": "inductor", "fullgraph": false, "mode": "max-autotune-no-cudagraphs", "dynamic": "false", "compile_transformer_blocks_only": true, "dynamo_cache_size_limit": 32, "debug_compile_keys": false, "disable_dynamic_vram": true, "model": ["21", 0] }, "class_type": "TorchCompileModelAdvanced" },
+                "775": { "inputs": { "seed": p_seed, "steps": p_steps, "cfg": p_cfg, "sampler_name": p_sampler, "scheduler": p_scheduler, "denoise": 1, "model": ["776", 0], "positive": ["15", 0], "negative": ["14", 0], "latent_image": ["16", 0] }, "class_type": "KSampler" },
+                "776": { "inputs": { "multiplier": p_rescale, "model": ["756", 0] }, "class_type": "RescaleCFG" },
+                "777": { "inputs": { "unet_name": p_unet, "weight_dtype": "default" }, "class_type": "UNETLoader" }
+            };
+        } else {
+            wf = {
+                "8": { "inputs": { "samples": ["19", 0], "vae": ["15", 0] }, "class_type": "VAEDecode" },
+                "11": { "inputs": { "text": p_prompt, "clip": ["45", 0] }, "class_type": "CLIPTextEncode" },
+                "12": { "inputs": { "text": p_neg, "clip": ["45", 0] }, "class_type": "CLIPTextEncode" },
+                "15": { "inputs": { "vae_name": p_vae }, "class_type": "VAELoader" },
+                "19": { "inputs": { "seed": p_seed, "steps": p_steps, "cfg": p_cfg, "sampler_name": p_sampler, "scheduler": p_scheduler, "denoise": 1, "model": ["73", 0], "positive": ["11", 0], "negative": ["12", 0], "latent_image": ["28", 0] }, "class_type": "KSampler" },
+                "28": { "inputs": { "width": p_width, "height": p_height, "batch_size": p_batch }, "class_type": "EmptyLatentImage" },
+                "44": { "inputs": { "unet_name": p_unet, "weight_dtype": "default" }, "class_type": "UNETLoader" },
+                "45": { "inputs": { "clip_name": p_clip, "type": "stable_diffusion", "device": "default" }, "class_type": "CLIPLoader" },
+                "50": { "inputs": { "filename_prefix": "Honey", "images": ["8", 0] }, "class_type": "SaveImage" },
+                "73": { "inputs": { "multiplier": p_rescale, "model": ["44", 0] }, "class_type": "RescaleCFG" }
+            };
+        }
+
         try {
             const req = await fetch('/prompt', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: wf, client_id: clientId}) });
             const res = await req.json(); const prompt_id = res.prompt_id;
