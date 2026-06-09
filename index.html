@@ -126,7 +126,6 @@
             background: var(--input-bg); 
             border: 1px solid var(--input-border); border-radius: 6px; margin-top: 15px; 
         }
-        /* 마진 리셋 추가! 기존 label 여백 덮어쓰기 */
         .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; margin: 0; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; margin: 0; }
         .slider { 
@@ -136,7 +135,7 @@
         }
         .slider:before { 
             position: absolute; content: ""; height: 16px; width: 16px; 
-            left: 3px; top: 50%; transform: translateY(-50%); /* 무조건 정중앙 */
+            left: 3px; top: 50%; transform: translateY(-50%); 
             background-color: #a0a4b8; transition: .3s; border-radius: 50%; 
         }
         input:checked + .slider { background-color: var(--accent); border-color: var(--accent); }
@@ -797,12 +796,12 @@
                 "16": { "inputs": { "width": p_width, "height": p_height, "batch_size": p_batch }, "class_type": "EmptyLatentImage" },
                 "17": { "inputs": { "samples": ["775", 0], "vae": ["10", 0] }, "class_type": "VAEDecode" },
                 "20": { "inputs": { "filename_prefix": "Honey", "images": ["17", 0] }, "class_type": "SaveImage" },
-                "21": { "inputs": { "sage_attention": "auto", "allow_compile": true, "model": ["777", 0] }, "class_type": "PathchSageAttentionKJ" },
-                "756": { "inputs": { "reuse_threshold": 0.2, "start_percent": 0.15, "end_percent": 0.95, "verbose": false, "model": ["760", 0] }, "class_type": "EasyCache" },
-                "760": { "inputs": { "backend": "inductor", "fullgraph": false, "mode": "max-autotune-no-cudagraphs", "dynamic": "false", "compile_transformer_blocks_only": true, "dynamo_cache_size_limit": 32, "debug_compile_keys": false, "disable_dynamic_vram": true, "model": ["21", 0] }, "class_type": "TorchCompileModelAdvanced" },
-                "775": { "inputs": { "seed": p_seed, "steps": p_steps, "cfg": p_cfg, "sampler_name": p_sampler, "scheduler": p_scheduler, "denoise": 1, "model": ["776", 0], "positive": ["15", 0], "negative": ["14", 0], "latent_image": ["16", 0] }, "class_type": "KSampler" },
-                "776": { "inputs": { "multiplier": p_rescale, "model": ["756", 0] }, "class_type": "RescaleCFG" },
-                "777": { "inputs": { "unet_name": p_unet, "weight_dtype": "default" }, "class_type": "UNETLoader" }
+                "21": { "inputs": { "sage_attention": "auto", "allow_compile": true, "model": ["760", 0] }, "class_type": "PathchSageAttentionKJ" },
+                "760": { "inputs": { "backend": "inductor", "fullgraph": false, "mode": "max-autotune-no-cudagraphs", "dynamic": "false", "compile_transformer_blocks_only": true, "dynamo_cache_size_limit": 32, "debug_compile_keys": false, "disable_dynamic_vram": true, "model": ["777", 0] }, "class_type": "TorchCompileModelAdvanced" },
+                "775": { "inputs": { "seed": p_seed, "steps": p_steps, "cfg": p_cfg, "sampler_name": p_sampler, "scheduler": p_scheduler, "denoise": 1, "model": ["789", 0], "positive": ["15", 0], "negative": ["14", 0], "latent_image": ["16", 0] }, "class_type": "KSampler" },
+                "777": { "inputs": { "unet_name": p_unet, "weight_dtype": "default" }, "class_type": "UNETLoader" },
+                "784": { "inputs": { "w": 0.3, "m": 3, "lam": 0.1, "window_size": 2, "flex_window": 0, "warmup_steps": 5, "stop_caching_step": -1, "steps": p_steps, "model": ["21", 0] }, "class_type": "SpectrumSDXL" },
+                "789": { "inputs": { "multiplier": p_rescale, "model": ["784", 0] }, "class_type": "RescaleCFG" }
             };
         } else {
             wf = {
