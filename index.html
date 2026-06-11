@@ -280,6 +280,31 @@
         <div id="param-content" class="collapsible-content">
             <label>Diffusion model</label>
             <select id="unet_name"></select>
+
+            <div style="grid-column: 1 / -1; margin-top: 15px;">
+                <div id="lora-toggle" onclick="toggleLoraSection()" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 0 10px; height: 43px; box-sizing: border-box; background: #1c1f2e; border: 1px solid var(--input-border); border-radius: 6px; font-size: 0.9em; font-weight: bold; color: #a0a4b8; margin: 0;">
+                    <span>LoRA 설정 (접기/펴기)</span>
+                    <svg id="lora-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.3s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                <div id="lora-content" style="display: none; margin-top: 8px; flex-direction: column; gap: 8px;">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: center;">
+                        <select id="lora_1_name"></select>
+                        <input type="number" id="lora_1_strength" value="1.00" step="0.05" style="margin-top:0; padding: 10px;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: center;">
+                        <select id="lora_2_name"></select>
+                        <input type="number" id="lora_2_strength" value="1.00" step="0.05" style="margin-top:0; padding: 10px;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: center;">
+                        <select id="lora_3_name"></select>
+                        <input type="number" id="lora_3_strength" value="1.00" step="0.05" style="margin-top:0; padding: 10px;">
+                    </div>
+                    <div style="grid-template-columns: 2fr 1fr; gap: 10px; align-items: center; display: grid;">
+                        <select id="lora_4_name"></select>
+                        <input type="number" id="lora_4_strength" value="1.00" step="0.05" style="margin-top:0; padding: 10px;">
+                    </div>
+                </div>
+            </div>
             
             <label>VAE / Text Encoder</label>
             <div class="grid-2">
@@ -443,7 +468,7 @@
 </div>
 
 <script>
-    const paramIds = ['prompt', 'negative', 'width', 'height', 'steps', 'cfg', 'rescale', 'sampler_name', 'scheduler', 'batch_size', 'seed', 'unet_name', 'vae_name', 'clip_name'];
+    const paramIds = ['prompt', 'negative', 'width', 'height', 'steps', 'cfg', 'rescale', 'sampler_name', 'scheduler', 'batch_size', 'seed', 'unet_name', 'vae_name', 'clip_name', 'lora_1_name', 'lora_1_strength', 'lora_2_name', 'lora_2_strength', 'lora_3_name', 'lora_3_strength', 'lora_4_name', 'lora_4_strength'];
 
     function saveParams() { 
         paramIds.forEach(id => { const el = document.getElementById(id); if (el) localStorage.setItem('honey_param_' + id, el.value); }); 
@@ -486,6 +511,18 @@
         const wrapper = sel.nextElementSibling;
         if (wrapper && wrapper.classList.contains('custom-select-ui')) {
             wrapper.querySelector('.select-selected span').innerText = sel.options[0].text;
+        }
+    }
+
+    function toggleLoraSection() {
+        const content = document.getElementById('lora-content');
+        const arrow = document.getElementById('lora-arrow');
+        if (content.style.display === 'none' || content.style.display === '') {
+            content.style.display = 'flex';
+            arrow.style.transform = 'rotate(180deg)';
+        } else {
+            content.style.display = 'none';
+            arrow.style.transform = 'rotate(0deg)';
         }
     }
 
@@ -614,7 +651,6 @@
     bindAutocomplete('prompt'); 
     bindAutocomplete('negative');
     
-    // 자동완성 삽입 위치 지능형 분기 로직
     window.insertTag = (tagText, start, end) => { 
         if(!activeTextarea) return; 
         const val = activeTextarea.value; 
@@ -785,23 +821,42 @@
         const p_vae = document.getElementById('vae_name').value;
         const p_clip = document.getElementById('clip_name').value;
 
+        const p_lora_1_name = document.getElementById('lora_1_name').value || "None";
+        const p_lora_1_strength = parseFloat(document.getElementById('lora_1_strength').value || 1.0);
+        const p_lora_2_name = document.getElementById('lora_2_name').value || "None";
+        const p_lora_2_strength = parseFloat(document.getElementById('lora_2_strength').value || 1.0);
+        const p_lora_3_name = document.getElementById('lora_3_name').value || "None";
+        const p_lora_3_strength = parseFloat(document.getElementById('lora_3_strength').value || 1.0);
+        const p_lora_4_name = document.getElementById('lora_4_name').value || "None";
+        const p_lora_4_strength = parseFloat(document.getElementById('lora_4_strength').value || 1.0);
+
         let wf = {};
 
         if (isFastMode) {
             wf = {
                 "10": { "inputs": { "vae_name": p_vae }, "class_type": "VAELoader" },
                 "11": { "inputs": { "clip_name": p_clip, "type": "stable_diffusion", "device": "default" }, "class_type": "CLIPLoader" },
-                "14": { "inputs": { "text": p_neg, "clip": ["11", 0] }, "class_type": "CLIPTextEncode" },
-                "15": { "inputs": { "text": p_prompt, "clip": ["11", 0] }, "class_type": "CLIPTextEncode" },
+                "14": { "inputs": { "text": p_neg, "clip": ["790", 1] }, "class_type": "CLIPTextEncode" },
+                "15": { "inputs": { "text": p_prompt, "clip": ["790", 1] }, "class_type": "CLIPTextEncode" },
                 "16": { "inputs": { "width": p_width, "height": p_height, "batch_size": p_batch }, "class_type": "EmptyLatentImage" },
                 "17": { "inputs": { "samples": ["775", 0], "vae": ["10", 0] }, "class_type": "VAEDecode" },
                 "20": { "inputs": { "filename_prefix": "Honey", "images": ["17", 0] }, "class_type": "SaveImage" },
                 "21": { "inputs": { "sage_attention": "auto", "allow_compile": true, "model": ["760", 0] }, "class_type": "PathchSageAttentionKJ" },
-                "760": { "inputs": { "backend": "inductor", "fullgraph": false, "mode": "max-autotune-no-cudagraphs", "dynamic": "false", "compile_transformer_blocks_only": true, "dynamo_cache_size_limit": 32, "debug_compile_keys": false, "disable_dynamic_vram": true, "model": ["777", 0] }, "class_type": "TorchCompileModelAdvanced" },
+                "760": { "inputs": { "backend": "inductor", "fullgraph": false, "mode": "max-autotune-no-cudagraphs", "dynamic": "false", "compile_transformer_blocks_only": true, "dynamo_cache_size_limit": 32, "debug_compile_keys": false, "disable_dynamic_vram": true, "model": ["790", 0] }, "class_type": "TorchCompileModelAdvanced" },
                 "775": { "inputs": { "seed": p_seed, "steps": p_steps, "cfg": p_cfg, "sampler_name": p_sampler, "scheduler": p_scheduler, "denoise": 1, "model": ["789", 0], "positive": ["15", 0], "negative": ["14", 0], "latent_image": ["16", 0] }, "class_type": "KSampler" },
                 "777": { "inputs": { "unet_name": p_unet, "weight_dtype": "default" }, "class_type": "UNETLoader" },
                 "784": { "inputs": { "w": 0.3, "m": 3, "lam": 0.1, "window_size": 2, "flex_window": 0, "warmup_steps": 5, "stop_caching_step": -1, "steps": p_steps, "model": ["21", 0] }, "class_type": "SpectrumSDXL" },
-                "789": { "inputs": { "multiplier": p_rescale, "model": ["784", 0] }, "class_type": "RescaleCFG" }
+                "789": { "inputs": { "multiplier": p_rescale, "model": ["784", 0] }, "class_type": "RescaleCFG" },
+                "790": { 
+                    "inputs": { 
+                        "lora_01": p_lora_1_name, "strength_01": p_lora_1_strength, 
+                        "lora_02": p_lora_2_name, "strength_02": p_lora_2_strength, 
+                        "lora_03": p_lora_3_name, "strength_03": p_lora_3_strength, 
+                        "lora_04": p_lora_4_name, "strength_04": p_lora_4_strength, 
+                        "model": ["777", 0], "clip": ["11", 0] 
+                    }, 
+                    "class_type": "Lora Loader Stack (rgthree)" 
+                }
             };
         } else {
             wf = {
@@ -842,7 +897,7 @@
 
     async function loadComfyData() {
         initCustomSelect('preset_select'); 
-        ['unet_name', 'vae_name', 'clip_name', 'sampler_name', 'scheduler'].forEach(initCustomSelect);
+        ['unet_name', 'vae_name', 'clip_name', 'sampler_name', 'scheduler', 'lora_1_name', 'lora_2_name', 'lora_3_name', 'lora_4_name'].forEach(initCustomSelect);
         
         try {
             const data = await (await fetch('/object_info')).json();
@@ -851,6 +906,15 @@
                 const sel = document.getElementById(id);
                 sel.innerHTML = '';
                 list.forEach(i => sel.add(new Option(i, i)));
+            };
+
+            const popLora = (id, list) => {
+                const sel = document.getElementById(id);
+                sel.innerHTML = '';
+                sel.add(new Option("None", "None"));
+                if (list) {
+                    list.forEach(i => { if(i !== "None") sel.add(new Option(i, i)); });
+                }
             };
             
             pop('unet_name', data.UNETLoader.input.required.unet_name[0]); 
@@ -861,12 +925,18 @@
             const schedulers = data.KSampler.input.required.scheduler[0];
             pop('sampler_name', samplers); 
             pop('scheduler', schedulers);
+
+            const loraList = data['Lora Loader Stack (rgthree)']?.input?.required?.lora_01?.[0] || [];
+            popLora('lora_1_name', loraList);
+            popLora('lora_2_name', loraList);
+            popLora('lora_3_name', loraList);
+            popLora('lora_4_name', loraList);
             
             restoreParams();
             if (!document.getElementById('sampler_name').value) document.getElementById('sampler_name').value = samplers.includes('euler') ? 'euler' : samplers[0]; 
             if (!document.getElementById('scheduler').value) document.getElementById('scheduler').value = schedulers.includes('simple') ? 'simple' : schedulers[0];
             
-            ['unet_name', 'vae_name', 'clip_name', 'sampler_name', 'scheduler', 'preset_select'].forEach(initCustomSelect);
+            ['unet_name', 'vae_name', 'clip_name', 'sampler_name', 'scheduler', 'preset_select', 'lora_1_name', 'lora_2_name', 'lora_3_name', 'lora_4_name'].forEach(initCustomSelect);
         } catch(e) {
             console.error("데이터를 불러오지 못했습니다.");
         }
